@@ -8,15 +8,9 @@ if [ $(id -u) != '0' ]; then
 	exit
 fi
 
-if [ ! -f /etc/centos-release ] || [ `cat /etc/centos-release|grep -e "CentOS Linux release 7\." -e "CentOS Linux release 8\."  |wc -l` -eq "0" ];then
-	echo '必须运行在CentOS7 OR CentOS8系统环境!'
-	exit
-fi
-
-SYSTEM_VERSION="centos7"
-if [ `cat /etc/centos-release|grep -e "CentOS Linux release 8\."|wc -l` -gt 0 ]; then
-	SYSTEM_VERSION="centos8"
-fi
+#系统名 默认为centos
+SYSTEM_NAME="centos"
+SYSTEM_VERSION="centos.7x"
 
 #lnmp-utils
 
@@ -29,11 +23,7 @@ INSTALL_DIR=/usr/local/
 
 #源地址
 SOURCE_SYSTEM=$SYSTEM_VERSION
-
-#SOURCE_URL="https://raw.githubusercontent.com/zeroainet/lnmp-utils-components/master/";
-SOURCE_URL="https://zeroai.coding.net/p/lnmp-utils-components/d/lmnp-utils-components/git/raw/master/"
-
-
+SOURCE_URL="https://raw.githubusercontent.com/tinycn/lnmp-utils-components.beta-1.0/master/";
 #获取当前目录名
 CURRENT_DIR=$(cd `dirname $0`; pwd)
 
@@ -79,10 +69,14 @@ optinit(){
 }
 
 
-optinit
-
+#option init
 CURRENT_IS_QUIET="0"
 CURRENT_IS_NO_CLEAR="0"
+CURRENT_COMPONENTS=()
+CURRENT_MODES=()
+CURRENT_OPTIONS=()
+
+optinit
 while [ -n "$1" ]; do
     case "${1}" in
     	-q|--quiet)
@@ -91,18 +85,24 @@ while [ -n "$1" ]; do
     		;;
     	-c|--component)
     		shift;
-    		CURRENT_COMPONENTS=`echo ${1//\'/}|tr ',' " "`
-    		shift;
+    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    			CURRENT_COMPONENTS[${#CURRENT_COMPONENTS}]=$1
+    			shift;
+    		done
     		;;
         -m|--mode)
-        	shift;
-        	CURRENT_MODES=`echo ${1//\'/}|tr ',' " "`
-        	shift;
+    		shift;
+    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    			CURRENT_MODES[${#CURRENT_MODES}]=$1
+    			shift;
+    		done
         	;;
         -o)
-        	shift;
-        	CURRENT_OPTIONS=`echo ${1//\'/}|tr ',' " "`
-        	shift;
+    		shift;
+    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    			CURRENT_OPTIONS[${#CURRENT_OPTIONS}]=$1
+    			shift;
+    		done
         	;;
         -h|--help)
         	shift;
@@ -116,23 +116,20 @@ while [ -n "$1" ]; do
         	shift;
         	CURRENT_IS_NO_CLEAR="1"
         	;;
-        --)
+        *)
         	shift;
-        	break;
         	;;
     esac
 done
 
-CPU_NUM=`cat /proc/cpuinfo|grep "model name"|wc -l`
-
-if [ $CPU_NUM -gt 4 ];then
-CPU_NUM=4
-fi
 
 if [ -f "$CURRENT_DIR/install.conf" ];then
 	source $CURRENT_DIR/install.conf
 fi
 
+if [ "$GITHUB_PROXY" != "" ]; then
+	SOURCE_URL=$GITHUB_PROXY$SOURCEURL
+fi
 #curl "${SOURCE_URL}/pkg.cnf" -i
 
 checkdir "${INSTALL_DIR}"
@@ -298,27 +295,16 @@ createdir(){
         done
 }
 
-#安装yum package
-yum_install(){
-	local _i="";
-	local _wpn=`yum list installed`;
-        for _i in $@; do
-			if [ `echo $_wpn|tr " " "\n"|grep -e "^${_i}"|wc -l` -eq "0" ];then
-				echo $_i
-				yum -y install $_i;
-			fi
-        done
+pkg_install() {
+	if [ "$SYSTEM_NAME" == 'centos' ]; then
+		yum_install $@;
+	fi
 }
 
-yum_uninstall() {
-	local _i='';
-	local _wpn=`yum list installed`;
-    for _i in $@;
-    do
-        if [ `echo $_wpn|tr " " "\n"|grep -e "^${_i}"|wc -l` -gt "0" ];then
-        	yum -y remove $_i
-        fi
-	done
+pkg_uninstall() {
+	if [ "$SYSTEM_NAME" == 'centos' ]; then
+		yum_uninstall $@;
+	fi
 }
 
 #根据端口删除进程
@@ -363,19 +349,19 @@ _SOURCE_PKG_CONF=""
 pkg_conf_get(){
 	echo $SOURCE_URL"pkg.cnf"
 	if [ "${_SOURCE_PKG_CONF}" == "" ];then
-		echo
-		if [ `curl -s -i $SOURCE_URL"pkg.cnf"|grep 'HTTP/1.1 200 OK'|wc -l` == '0' ];then
+		
+		if [ `curl -s -i $SOURCE_URL"pkg.cnf"|grep -e 'HTTP/1.1 200 OK' -e 'HTTP/2 200' |wc -l` == '0' ];then
 			error "url connect timeout! ${SOURCE_URL}"
 		fi
 		_SOURCE_PKG_CONF=`curl -s $SOURCE_URL"pkg.cnf"|tr "\n" " "`
 	fi
-	echo -e ${_SOURCE_PKG_CONF[*]}|tr " " "\n"|grep -i "centos7"
+	echo -e ${_SOURCE_PKG_CONF[*]}|tr " " "\n"
 }
 
 com_source_get() {
 	local _cname=$1
 	local _cdir=$2
-	local cName="${SOURCE_SYSTEM}-component-${_cname}"
+	local cName="linux-component-${_cname}"
 	local _pkgfile="${PKG_COMPONENT_DIR}${cName}.zip"
 
 	if [ ! -f "${_pkgfile}" ];then
@@ -422,7 +408,8 @@ com_install(){
                 COM_PACKAGE_DIR="${COM_DIR}package/"
                 COM_SOURCE_FILE=""
                 COM_CONF_DIR="${COM_DIR}conf/"
-                COM_INSTALL_SCRIPT="${COM_DIR}install.sh"
+                COM_INSTALL_SCRIPT="${COM_DIR}install.${SYSTEM_VERSION}.sh"
+                COM_INSTALL_DEFAULT_SCRIPT="${COM_DIR}install.sh"
                 COM_INSTALL_DIR="${INSTALL_DIR}$_com/"
                 COM_DATA_CONF_DIR="${DATA_CONF_DIR}$_com/"
                 COM_DATA_DB_DIR="${DATA_DB_DIR}$_com/"
@@ -435,16 +422,22 @@ com_install(){
                         	error "组件${_com}安装失败,目录${COM_DIR}不存在!"
                         fi
                 fi
-
-                if [ ! -f $COM_INSTALL_FILE ]; then
-                        error "组件${_com}安装失败,${COM_INSTALL_FILE}不存在!"
+				
+                if [ ! -f $COM_INSTALL_SCRIPT ] && [ ! -f $COM_INSTALL_DEFAULT_SCRIPT ]; then
+                        error "组件${_com}安装失败,${COM_INSTALL_SCRIPT} && ${COM_INSTALL_DEFAULT_SCRIPT}不存在!"
                 fi
-
+                
                 com_tmp_init
 
           	echo "安装组件包：${_com}开始";
           	cd $CURRENT_DIR
-                . $COM_INSTALL_SCRIPT
+          		
+          		if [ -f $COM_INSTALL_SCRIPT ]; then
+                	. $COM_INSTALL_SCRIPT
+                elif [ -f $COM_INSTALL_DEFAULT_SCRIPT ]; then
+                	. $COM_INSTALL_DEFAULT_SCRIPT
+                fi
+                
                 echo "安装组件包：${_com}结束";
                 sleep 2
 
@@ -612,7 +605,11 @@ hasoption(){
 	inarray "${1}" "${CURRENT_OPTIONS[*]}"
 }
 
-
+#最大编译内核
+CPU_NUM=`cat /proc/cpuinfo|grep "model name"|wc -l`
+if [ -n "$(echo $MAKE_MAX_CPU_NAME| sed -n "/^[0-9]\+$/p")" ] && [ $CPU_NUM -gt "$MAKE_MAX_CPU_NAME" ]; then
+	CPU_NUM=$MAKE_MAX_CPU_NAME
+fi
 
 #创建data文件夹
 createdir $DATA_DIR $DATA_BAK_DIR
@@ -626,97 +623,17 @@ createdir $SOURCE_DIR $SOURCE_COMPONENT_DIR $SOURCE_MODULE_DIR
 #需要备份的data文件夹路径
 createdir $DATA_BAK_DIR $DATA_WEB_DIR $DATA_DB_DIR $DATA_SCRIPT_DIR $DATA_CONF_DIR
 
-if [ "$CURRENT_IS_QUIET" = '0' ];then
+#加载系统指定初始化脚本
+if [ -f /etc/centos-release ]; then
+	SYSTEM_NAME="centos"
+	SYSTEM_VERSION="centos.7x"
+fi
 
-    #设置时区
-    rm -f /etc/localtime
-    cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+INSTALL_SYSTEM_SCRIPT="${CURRENT_DIR}/init.${SYSTEM_NAME}.sh"
+echo $INSTALL_SYSTEM_SCRIPT
 
-    #关闭selinux
-    if [ -s /etc/selinux/config ]; then
-	    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-    fi
-
-
-    #加载基础库
-    if [ ! -f /etc/ld.so.conf.d/zeroai-utils.conf ];then
-    cat >> /etc/ld.so.conf.d/zeroai-utils.conf <<EOT
-/usr/local/lib
-/usr/local/lib64
-EOT
-    ldconfig -v
-    fi
-
-    #优化网络参数
-    grep "^#patch by zeroai-utils$" /etc/sysctl.conf >/dev/null
-    if [ $? != 0 ]; then
-
-        cat >>/etc/sysctl.conf<<EOF
-#patch by zeroai-utils
-net.ipv4.ip_forward = 0
-net.ipv4.conf.default.rp_filter = 1
-net.ipv4.conf.default.accept_source_route = 0
-kernel.sysrq = 0
-kernel.core_uses_pid = 1
-net.ipv4.tcp_syncookies = 1
-kernel.msgmnb = 65536
-kernel.msgmax = 65536
-kernel.shmmax = 68719476736
-kernel.shmall = 4294967296
-net.ipv4.tcp_max_tw_buckets = 6000
-net.ipv4.tcp_sack = 1
-net.ipv4.tcp_window_scaling = 1
-net.ipv4.tcp_wmem = 8192 4336600 873200
-net.ipv4.tcp_rmem = 32768 4336600 873200
-net.core.wmem_default = 8388608
-net.core.rmem_default = 8388608
-net.core.rmem_max = 16777216
-net.core.wmem_max = 16777216
-net.core.netdev_max_backlog = 262144
-net.core.somaxconn = 262144
-net.ipv4.tcp_max_orphans = 3276800
-net.ipv4.tcp_max_syn_backlog = 262144
-net.ipv4.tcp_timestamps = 1
-net.ipv4.tcp_synack_retries = 1
-net.ipv4.tcp_syn_retries = 1
-net.ipv4.tcp_tw_recycle = 1
-net.ipv4.tcp_tw_reuse = 1
-net.ipv4.tcp_mem = 786432 1048576 1572864
-net.ipv4.tcp_fin_timeout = 30
-net.ipv4.tcp_keepalive_time = 300
-net.ipv4.ip_local_port_range = 1024 65000
-vm.zone_reclaim_mode = 1
-EOF
-        sysctl -p >>/dev/null 2>&1
-    fi
-
-
-    #优化文件描述符
-    grep "^#patch by zeroai-utils$" /etc/security/limits.conf >/dev/null
-    if [ $? != 0 ]; then
-
-        cat >>/etc/security/limits.conf<<EOF
-#patch by zeroai-utils
-*               soft     nproc         65536
-*               hard     nproc         65536
-
-*               soft     nofile         102400
-*               hard     nofile         102400
-EOF
-
-    fi
-    ulimit -n 102400
-
-	#添加用户
-	user_add www www
-
-	#安装必须的包
-	yum_install make gd-devel flex bison file libtool libtool-libs autoconf ntp ntpdate net-snmp-devel  readline-devel net-snmp net-snmp-utils psmisc net-tools iptraf ncurses-devel  iptraf wget curl patch make gcc gcc-c++  kernel-devel unzip zip pigz
-	yum_install pcre-devel openssl-devel
-
-	#同步时间
-	ntpdate cn.pool.ntp.org
-	hwclock --systohc
+if [ -f $INSTALL_SYSTEM_SCRIPT ]; then
+. $INSTALL_SYSTEM_SCRIPT
 fi
 
 com_install "${CURRENT_COMPONENTS[*]}"
