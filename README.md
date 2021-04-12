@@ -62,16 +62,24 @@ GITHUB_PROXY="https://ghproxy.com/"
 可以自定义扩展组件
 
 
-安装方式
+下载到本地
 =======
 ```shell
    git clone https://github.com/tinycn/lnmp-utils.git
 ```
 
-使用方式
+组件安装
 =======
 ```shell
-   #安装
+   git clone https://github.com/tinycn/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c php redis mysql memcached openresty
+```
+
+模块安装
+=======
+```shell
+   git clone https://github.com/tinycn/lnmp-utils.git
+   cd lnmp-utils
+   ./install.sh -m lnmp
 ```
