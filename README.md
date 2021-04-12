@@ -73,5 +73,5 @@ GITHUB_PROXY="https://ghproxy.com/"
 ```shell
    #安装
    cd lnmp-utils
-   ./install.sh -c php,redis,mysql,memcached,openresty
+   ./install.sh -c php redis mysql memcached openresty
 ```
