@@ -52,13 +52,12 @@ lnmp-utils简介
 =======
 公共组件源:  https://github.com/tinycn/lnmp-utils-components.git
 
-中国地区的组件源: https://e.coding.net/tinycn/lnmp-utils-components.git
-
-更改组件源
+添加或更改组件源代理
 
 ```shell
 vi ./install.conf
-修改 SOURCE_URL=https://github.com/tinycn/lnmp-utils-components.git
+#GITHUB_PROXY
+GITHUB_PROXY="https://ghproxy.com/"
 ```
 可以自定义扩展组件
 
