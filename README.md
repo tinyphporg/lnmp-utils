@@ -1,9 +1,9 @@
 lnmp-utils README
 ============
 
-lnmp-utils简介
+简介
 ============
-  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Eedis一键安装包.
+  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis一键安装包.
 
   经过实践检验，可组成支撑日PV10级别的LNMP大型集群环境。
   

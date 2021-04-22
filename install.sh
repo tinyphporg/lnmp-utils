@@ -8,12 +8,6 @@ if [ $(id -u) != '0' ]; then
 	exit
 fi
 
-#系统名 默认为centos
-SYSTEM_NAME="centos"
-SYSTEM_VERSION="centos.7x"
-
-#lnmp-utils
-
 #global setting
 #数据目录
 DATA_DIR=/data/
@@ -21,12 +15,14 @@ DATA_DIR=/data/
 #安装目录
 INSTALL_DIR=/usr/local/
 
-#源地址
+#系统名 默认为centos
+SYSTEM_NAME="centos"
+SYSTEM_VERSION="centos.7x"
 SOURCE_SYSTEM=$SYSTEM_VERSION
-SOURCE_URL="https://raw.githubusercontent.com/tinycn/lnmp-utils-components.beta-1.0/master/";
+SOURCE_URL="https://raw.githubusercontent.com/tinycn/lnmp-utils-components/master/";
+
 #获取当前目录名
 CURRENT_DIR=$(cd `dirname $0`; pwd)
-
 
 inarray() {
     local _var=$1
@@ -39,8 +35,8 @@ inarray() {
 }
 
 showhelp(){
-	echo "ZeroAI-utils For CentOS 7 Beta 1.0"
-	echo -e "From:   https://github.com/zeroainet/zeroai-utils"
+	echo "lnmp-utils For CentOS.7x.x86_64"
+	echo -e "From:   https://github.com/tinycn/lnmp-utils"
 	echo "---------------------"
 	echo "-h|--help            可阅读详细帮助"
 	echo "-q|--quiet           静默安装"
@@ -122,7 +118,6 @@ while [ -n "$1" ]; do
     esac
 done
 
-
 if [ -f "$CURRENT_DIR/install.conf" ];then
 	source $CURRENT_DIR/install.conf
 fi
@@ -130,11 +125,9 @@ fi
 if [ "$GITHUB_PROXY" != "" ]; then
 	SOURCE_URL=$GITHUB_PROXY$SOURCEURL
 fi
-#curl "${SOURCE_URL}/pkg.cnf" -i
 
 checkdir "${INSTALL_DIR}"
 checkdir "${DATA_DIR}"
-
 
 #资源包的存放目录
 PKG_DIR=$CURRENT_DIR/pkg/
@@ -142,8 +135,6 @@ PKG_DIR=$CURRENT_DIR/pkg/
 PKG_MODULE_DIR=${PKG_DIR}module/
 #资源包的组件目录
 PKG_COMPONENT_DIR=${PKG_DIR}component/
-
-
 
 #临时解压与安装目录
 TMP_DIR=/tmp/zeroai/zeroai-utils/
@@ -167,7 +158,6 @@ SOURCE_COMPONENT_DIR=${SOURCE_DIR}component/
 
 #默认安装目录
 DEFAULT_INSTALL_DIR=/usr/local/
-
 
 #网站目录
 DATA_WEB_DIR=${DATA_DIR}web/
@@ -228,7 +218,6 @@ COM_DATA_CONF_DIR=""
 
 #组件的DB目录
 COM_DATA_DB_DIR=""
-
 
 #组件的脚本目录
 COM_DATA_SCRIPT_DIR=""
@@ -308,7 +297,6 @@ pkg_uninstall() {
 }
 
 #根据端口删除进程
-
 killport(){
         if [ ! "$1" ];then
                 return;
@@ -320,7 +308,7 @@ killport(){
 }
 #必须组件
 require(){
-	com_install "$1";
+	com_install "$*";
 }
 
 #安装
@@ -402,7 +390,6 @@ com_install(){
         local _com;
         for _com in $1;
         do
-
                 COM_NAME=$_com
                 COM_DIR="$SOURCE_COMPONENT_DIR$_com/"
                 COM_PACKAGE_DIR="${COM_DIR}package/"
@@ -638,8 +625,7 @@ fi
 
 com_install "${CURRENT_COMPONENTS[*]}"
 
-
-mod_install "${CURRENT_MODULES[*]}"
+mod_install "${CURRENT_MODES[*]}"
 
 #清理临时文件夹
 if [ "${CURRENT_IS_NO_CLEAR}" == '0' ];then
