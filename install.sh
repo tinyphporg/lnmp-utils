@@ -123,7 +123,7 @@ if [ -f "$CURRENT_DIR/install.conf" ];then
 fi
 
 if [ "$GITHUB_PROXY" != "" ]; then
-	SOURCE_URL=$GITHUB_PROXY$SOURCEURL
+	SOURCE_URL=$GITHUB_PROXY$SOURCE_URL
 fi
 
 checkdir "${INSTALL_DIR}"
