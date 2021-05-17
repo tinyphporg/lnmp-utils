@@ -3,24 +3,24 @@ lnmp-utils README
 
 简介
 ============
-  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis一键安装包.
+>  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis一键安装包.
 
-  经过实践检验，可组成支撑日PV10级别的LNMP大型集群环境。
+>  已经过实践检验，可组成支撑日PV10级别的LNMP大型集群环境。
   
-  之前主要服务于TinyPHP for Frameworks这款PHP轻量级框架的生产环境,
+>  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)这款PHP轻量级框架的生产环境,
   
-  该项目地址: https://github.com/tinycn/tinyphp.git
+    + 项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
 
-  主要安装方式: 源码编译.
+>  安装方式: 源码编译.
 
-  优势: 注重性能，简洁高效，适合开发/生产环境的早期架构预研和部署。
+>  优势: 注重性能，简洁高效，适合开发/生产环境的早期架构预研和部署。
 
-  推荐部署系统: CentOS 7.x 64 minimal
+>  推荐部署系统: CentOS 7.x 64 minimal
 
-  推荐部署的基础硬件:
-  			CPU 4/8核，
-  			内存 16/32G，
-  			硬盘 SSD + HDD。
+>  推荐部署的基础硬件:
+    + CPU 4/8核，
+    + 内存 16/32G，
+    + 硬盘 SSD + HDD。
 
 组件清单
 =======
