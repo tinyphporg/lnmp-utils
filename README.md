@@ -9,7 +9,7 @@ lnmp-utils README
   
 >  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)这款PHP轻量级框架的生产环境,
   
-    + 项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
+> 项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
 
 >  安装方式: 源码编译.
 
