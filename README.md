@@ -17,9 +17,9 @@ lnmp一键安装
 
 >  已经过实践检验，可组成支撑日PV10级别的LNMP大型集群环境。
   
->  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)这款PHP轻量级框架的生产环境,
+>  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)
   
-> 项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
+>> 	项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
 
 >  安装方式: 源码编译.
 
@@ -39,24 +39,19 @@ lnmp一键安装
     + 1.15.8.2 
     + [https://github.com/openresty/openresty.git](https://github.com/openresty/openresty.git)
     + High Performance Web Platform Based on Nginx and LuaJIT
++ mysql 
+    + 8.0.18
++ php 
+    + 7.3.10
++ redis 
+    + 5.0.7
++ memcached 
+    + 1.5.19 纯内存NOSQL
++ fastdfs 
+    + 6.01 分布式小文件存储
++ lsyncd 
+    + CentOS下文件实时同步组件
 
-+ mysql                8.0.18 https://github.com/mysql/mysql-server.git
-       MySQL Server, the worlds most popular open source database, and MySQL Cluster, a real-time, open source transactional database.
-
-+ php                  7.3.10 http://php.net
-       PHP语言环境
-
-+ redis                5.0.7 http://redis.io/
-       可持久化的内存NOSQL
-
-+ memcached            1.5.19 http://www.memcached.org/
-       纯内存NOSQL
-
-+ fastdfs              6.01 https://github.com/happyfish100/fastdfs.git
-       分布式小文件存储
-
-+ lsyncd
-       CentOS下文件实时同步组件
 
 组件源与扩展
 =======
@@ -67,10 +62,10 @@ lnmp一键安装
 ```shell
 vi ./install.conf
 #GITHUB_PROXY
-GITHUB_PROXY="https://ghproxy.com/"
+GITHUB_PROXY="https://ghproxy.com/" #国内代理
 ```
-可以自定义扩展组件
 
+支持自定义扩展组件
 
 下载到本地
 =======
