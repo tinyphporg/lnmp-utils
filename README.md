@@ -10,12 +10,13 @@ lnmp一键安装
    cd lnmp-utils
    ./install.sh -m lnmp
 ```
+
 简介
 ===
 
 >  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis一键安装包.
 
->  已经过实践检验，可组成支撑日PV10级别的LNMP大型集群环境。
+>  已经过实践检验，可组成支撑日PV10亿级别的LNMP大型集群环境。
   
 >  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)
   

@@ -453,6 +453,11 @@ com_untar(){
         tar zxvf $1 -C $TMP_COM_DIR >/dev/null
 }
 
+#解压组件的tar文件
+com_untarxz(){
+        tar xvf $1 -C $TMP_COM_DIR >/dev/null
+}
+
 #解压组件的zip文件
 com_unzip() {
         unzip  -u $1  -d $TMP_COM_DIR>/dev/null
