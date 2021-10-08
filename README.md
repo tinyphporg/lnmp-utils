@@ -6,7 +6,7 @@ lnmp一键安装
 > centos7x下一键安装lnmp(linux+nginx+mysql+php)环境
 
 ```shell
-   git clone https://github.com/tinycn/lnmp-utils.git
+   git clone https://github.com/saasjit/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -m lnmp
 ```
@@ -20,7 +20,7 @@ lnmp一键安装
   
 >  主要服务于[TinyPHP for Frameworks](https://github.com/tinycn/tinyphp.git)
   
->> 	项目地址: [https://github.com/tinycn/tinyphp.git](https://github.com/tinycn/tinyphp.git)
+>> 	项目地址: [https://github.com/saasjit/tinyphp.git](https://github.com/saasjit/tinyphp.git)
 
 >  安装方式: 源码编译.
 
@@ -56,7 +56,7 @@ lnmp一键安装
 
 组件源与扩展
 =======
-公共组件源:  https://github.com/tinycn/lnmp-utils-components.git
+公共组件源:  https://github.com/saasjit/lnmp-utils-components.git
 
 添加或更改组件源代理
 
@@ -71,13 +71,13 @@ GITHUB_PROXY="https://ghproxy.com/" #国内代理
 下载到本地
 =======
 ```shell
-   git clone https://github.com/tinycn/lnmp-utils.git
+   git clone https://github.com/saasjit/lnmp-utils.git
 ```
 
 组件安装
 =======
 ```shell
-   git clone https://github.com/tinycn/lnmp-utils.git
+   git clone https://github.com/saasjit/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c php redis mysql memcached openresty
 ```
@@ -85,7 +85,7 @@ GITHUB_PROXY="https://ghproxy.com/" #国内代理
 模块安装
 =======
 ```shell
-   git clone https://github.com/tinycn/lnmp-utils.git
+   git clone https://github.com/saasjit/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -m lnmp
 ```

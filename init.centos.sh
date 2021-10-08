@@ -45,8 +45,8 @@ if [ "$CURRENT_IS_QUIET" = '0' ];then
 
 
     #加载基础库
-    if [ ! -f /etc/ld.so.conf.d/zeroai-utils.conf ];then
-    cat >> /etc/ld.so.conf.d/zeroai-utils.conf <<EOT
+    if [ ! -f /etc/ld.so.conf.d/lnmp-utils.conf ];then
+    cat >> /etc/ld.so.conf.d/lnmp-utils.conf <<EOT
 /usr/local/lib
 /usr/local/lib64
 EOT
@@ -54,7 +54,7 @@ EOT
     fi
 
     #优化网络参数
-    grep "^#patch by tinycn/lnmp-utils$" /etc/sysctl.conf >/dev/null
+    grep "^#patch by saasjit/lnmp-utils$" /etc/sysctl.conf >/dev/null
     if [ $? != 0 ]; then
 
         cat >>/etc/sysctl.conf<<EOF
@@ -98,7 +98,7 @@ EOF
 
 
     #优化文件描述符
-    grep "^#patch by tinycn/lnmp-utils$" /etc/security/limits.conf >/dev/null
+    grep "^#patch by saasjit/lnmp-utils$" /etc/security/limits.conf >/dev/null
     if [ $? != 0 ]; then
 
         cat >>/etc/security/limits.conf<<EOF

@@ -19,7 +19,7 @@ INSTALL_DIR=/usr/local/
 SYSTEM_NAME="centos"
 SYSTEM_VERSION="centos.7x"
 SOURCE_SYSTEM=$SYSTEM_VERSION
-SOURCE_URL="https://raw.githubusercontent.com/tinycn/lnmp-utils-components/master/";
+SOURCE_URL="https://raw.githubusercontent.com/saasjit/lnmp-utils-components/master/";
 
 #获取当前目录名
 CURRENT_DIR=$(cd `dirname $0`; pwd)
@@ -36,7 +36,7 @@ inarray() {
 
 showhelp(){
 	echo "lnmp-utils For CentOS.7x.x86_64"
-	echo -e "From:   https://github.com/tinycn/lnmp-utils"
+	echo -e "From:   https://github.com/saasjit/lnmp-utils"
 	echo "---------------------"
 	echo "-h|--help            可阅读详细帮助"
 	echo "-q|--quiet           静默安装"
