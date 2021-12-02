@@ -6,7 +6,9 @@ lnmp-utils
 
 >  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis + FastDFS一键安装包.   
 >  经过实践检验，源码编译安装LNMP大型集群环境。   
->  主要服务于[TinyPHP for Frameworks](https://github.com/saasjit/tinyphp.git) 项目地址: [https://github.com/saasjit/tinyphp.git](https://github.com/saasjit/tinyphp.git)    
+
+> 项目应用于: [TinyPHP for Frameworks](https://github.com/saasjit/tinyphp.git) 的运行环境。   
+>  地址: [https://github.com/saasjit/tinyphp.git](https://github.com/saasjit/tinyphp.git)    
 
 安装
 ===
