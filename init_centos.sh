@@ -1,29 +1,24 @@
 
-#安装yum package
-yum_install(){
-	local _i="";
-	local _wpn=`yum list installed`;
-        for _i in $@; do
-			if [ `echo $_wpn|tr " " "\n"|grep -e "^${_i}"|wc -l` -eq "0" ];then
-				echo $_i
-				yum -y install $_i;
+yum_install() {
+	local wpn=`yum list installed`;
+        for i in $@; do
+			if [ `echo $wpn|tr " " "\n"|grep -e "^${i}"|wc -l` -eq 0 ]; then
+				yum -y install $i;
 			fi
         done
 }
 
 yum_uninstall() {
-	local _i='';
-	local _wpn=`yum list installed`;
-    for _i in $@;
-    do
-        if [ `echo $_wpn|tr " " "\n"|grep -e "^${_i}"|wc -l` -gt "0" ];then
-        	yum -y remove $_i
+	local wpn=`yum list installed`;
+    for i in $@; do
+		if [ `echo $_wpn|tr " " "\n"|grep -e "^${i}"|wc -l` -gt 0 ]; then
+        	yum -y remove $i
         fi
 	done
 }
 
-if [ ! -f /etc/centos-release ] || [ `cat /etc/centos-release|grep -e "CentOS Linux release 7\." -e "CentOS Linux release 8\."  |wc -l` -eq "0" ];then
-	echo '必须运行在CentOS7 OR CentOS8系统环境!'
+if [ ! -f /etc/centos-release ] || [ `cat /etc/centos-release|grep -e "CentOS Linux release 7\." -e "CentOS Linux release 8\."  |wc -l` -eq 0 ]; then
+	echo 'CentOS Version must be 7 or 8!'
 	exit
 fi
 
@@ -32,33 +27,31 @@ if [ `cat /etc/centos-release|grep -e "CentOS Linux release 8\."|wc -l` -gt 0 ];
 	SYSTEM_VERSION="centos8"
 fi
 
-if [ "$CURRENT_IS_QUIET" = '0' ];then
+if [ "$CURRENT_IS_QUIET" = "0" ]; then
 
-    #设置时区
-    rm -f /etc/localtime
-    cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
-
-    #关闭selinux
     if [ -s /etc/selinux/config ]; then
 	    sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
     fi
-
-
-    #加载基础库
-    if [ ! -f /etc/ld.so.conf.d/lnmp-utils.conf ];then
-    cat >> /etc/ld.so.conf.d/lnmp-utils.conf <<EOT
+    
+    if [ ! -f /etc/ld.so.conf.d/lnmp-utils.conf ];then	
+    	rm -f /etc/localtime
+    	cp -f /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+    	yum_install ntp ntpdate  libtool libtool-libs
+		ntpdate cn.pool.ntp.org
+		hwclock --systohc
+		
+    	cat >> /etc/ld.so.conf.d/lnmp-utils.conf <<EOT
 /usr/local/lib
 /usr/local/lib64
 EOT
     ldconfig -v
     fi
 
-    #优化网络参数
     grep "^#patch by saasjit/lnmp-utils$" /etc/sysctl.conf >/dev/null
     if [ $? != 0 ]; then
 
         cat >>/etc/sysctl.conf<<EOF
-#patch by zeroai-utils
+#patch by saasjit/lnmp-utils
 net.ipv4.ip_forward = 0
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.default.accept_source_route = 0
@@ -94,32 +87,22 @@ net.ipv4.ip_local_port_range = 1024 65000
 vm.zone_reclaim_mode = 1
 EOF
         sysctl -p >>/dev/null 2>&1
-    fi
+	fi
 
-
-    #优化文件描述符
     grep "^#patch by saasjit/lnmp-utils$" /etc/security/limits.conf >/dev/null
     if [ $? != 0 ]; then
-
-        cat >>/etc/security/limits.conf<<EOF
-#patch by zeroai-utils
+		cat >>/etc/security/limits.conf<<EOF
+#patch by saasjit/lnmp-utils
 *               soft     nproc         65536
 *               hard     nproc         65536
 
 *               soft     nofile         102400
 *               hard     nofile         102400
 EOF
-
+		ulimit -n 102400
     fi
-    ulimit -n 102400
-
-	#添加用户
+    
+    
 	user_add www www
-
-	#安装必须的包
-	yum_install make  libtool libtool-libs autoconf automake ntp ntpdate net-snmp-devel   net-snmp net-snmp-utils psmisc net-tools iptraf ncurses-devel  iptraf wget curl patch gcc gcc-c++  kernel-devel unzip zip pigz
-
-	#同步时间
-	ntpdate cn.pool.ntp.org
-	hwclock --systohc
+	yum_install make  autoconf automake ntp ntpdate net-snmp-devel   net-snmp net-snmp-utils psmisc net-tools iptraf ncurses-devel  iptraf wget curl patch gcc gcc-c++  kernel-devel unzip zip pigz
 fi

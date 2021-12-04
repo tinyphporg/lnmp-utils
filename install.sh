@@ -4,30 +4,25 @@ PATH=/usr/local/bin:/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/sbin:~/bin
 export PATH
 
 if [ $(id -u) != '0' ]; then
-	echo '必须以root身份运行该安装脚本!'
+	echo 'Must be setuid root'
 	exit
 fi
 
-#global setting
-#数据目录
 DATA_DIR=/data/
-
-#安装目录
 INSTALL_DIR=/usr/local/
 
-#系统名 默认为centos
 SYSTEM_NAME="centos"
 SYSTEM_VERSION="centos.7x"
+
+#source
 SOURCE_SYSTEM=$SYSTEM_VERSION
 SOURCE_URL="https://raw.githubusercontent.com/saasjit/lnmp-utils-components/master/";
 
-#获取当前目录名
-CURRENT_DIR=$(cd `dirname $0`; pwd)
-
+# define functions
 inarray() {
-    local _var=$1
-    local _arr=$2
-    if [[ "${_arr[@]/$_var/}" != "${_arr[@]}" ]];then
+    local var=$1
+    local arr=$2
+    if [[ "${arr[@]/$var/}" != "${arr[@]}" ]]; then
         echo "1"
     else
         echo "0"
@@ -35,37 +30,45 @@ inarray() {
 }
 
 showhelp(){
-	echo "lnmp-utils For CentOS.7x.x86_64"
-	echo -e "From:   https://github.com/saasjit/lnmp-utils"
+	echo "CentOS 7.X lnmp-utils"
+    echo "---------------------"
+    echo "component list:"
+	echo "lnmp: openresty(nginx+lua) mysql  php"
+	echo "nosql:   redis memcached"
+	echo "dfs:     fastdfs"
+	echo "node.js: node"
+	echo "From: https://github.com/saasjit/lnmp-utils"
+    echo "---------------------"
+    echo "module list:"	
+    echo "lnmp"
 	echo "---------------------"
-	echo "-h|--help            可阅读详细帮助"
-	echo "-q|--quiet           静默安装"
-	echo "-c|--component=xxx   可直接安装组件 多个组件用,分隔!"
-	echo "-m|--mode=xxx        可直接安装模块"
-	echo "-o|--option          附加参数"
-	echo "-b|--build           创建内容"
-	echo "--no-clear           不清除临时文件夹"
+	echo "-h|--help            Help"
+	echo "-q|--quiet           Silent installation mode"
+	echo "-c|--component=xxx   Install components"
+	echo "                     ./install.sh -c mysql php redis openresty node fastdfs ..."
+	echo "-m|--mode=xxx        Install modules"
+	echo "-o|--option          Options for installing components"
+	echo "                     ./install.sh -c openresty -o fdfs proxy"
+	echo "-b|--build           Build folder for custom component development"
+	echo "--no-clear           Do not clean up the installation folder. "
 	exit
 }
 
 checkdir(){
-	local _dirs=('.' './' '../' '..' '/')
-	if [ "${1}" = "" ] || [ `inarray "${1}" "${_dirs[*]}"` = "1" ] || [ -f "${1}" ];then
-		echo "${1}不能为空, 已存在的文件, 或('.' './' '../' '..' '/')中的一个。"
+	local dirs=('.' './' '../' '..' '/')
+	if [ "${1}" = "" ] || [ `inarray "${1}" "${dirs[*]}"` = "1" ] || [ -f "${1}" ]; then
+		echo "Invalid dirname:${1}"
 		exit
 	fi
 }
 
 optinit(){
-	local _tmpopt=`getopt -o "qo:c:m:h" -l "component:,option:,mode:,quiet,help" -n "$0" -- "$@"`
-	if [ "$?" != "0" ];then
-		echo && showhelp
-	fi
-	set -- $_tmpopt
+	local tmpopt=`getopt -o "qo:c:m:h" -l "component:,option:,mode:,quiet,help" -n "$0" -- "$@"`
+	set -- $tmpopt
 }
 
-
-#option init
+#options
+CURRENT_DIR=$(cd `dirname $0`; pwd)
 CURRENT_IS_QUIET="0"
 CURRENT_IS_NO_CLEAR="0"
 CURRENT_COMPONENTS=()
@@ -81,21 +84,21 @@ while [ -n "$1" ]; do
     		;;
     	-c|--component)
     		shift;
-    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    		while [ "${1}" != "" ] && [ "${1:0:1}" != "-" ]; do
     			CURRENT_COMPONENTS[${#CURRENT_COMPONENTS}]=$1
     			shift;
     		done
     		;;
         -m|--mode)
     		shift;
-    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    		while [ "${1}" != "" ] && [ "${1:0:1}" != "-" ]; do
     			CURRENT_MODES[${#CURRENT_MODES}]=$1
     			shift;
     		done
         	;;
         -o)
     		shift;
-    		while [ "$1" != "" ] && [ "${1:0:1}" != "-" ]; do
+    		while [ "${1}" != "" ] && [ "${1:0:1}" != "-" ]; do
     			CURRENT_OPTIONS[${#CURRENT_OPTIONS}]=$1
     			shift;
     		done
@@ -118,521 +121,478 @@ while [ -n "$1" ]; do
     esac
 done
 
-if [ -f "$CURRENT_DIR/install.conf" ];then
+if [ -f "${CURRENT_DIR}/install.conf" ]; then
 	source $CURRENT_DIR/install.conf
-fi
-
-if [ "$GITHUB_PROXY" != "" ]; then
-	SOURCE_URL=$GITHUB_PROXY$SOURCE_URL
 fi
 
 checkdir "${INSTALL_DIR}"
 checkdir "${DATA_DIR}"
 
-#资源包的存放目录
+#package setting
 PKG_DIR=$CURRENT_DIR/pkg/
-#资源包的模块目录
 PKG_MODULE_DIR=${PKG_DIR}module/
-#资源包的组件目录
 PKG_COMPONENT_DIR=${PKG_DIR}component/
+PKG_SOURCE_CONF=""
 
-#临时解压与安装目录
-TMP_DIR=/tmp/zeroai/zeroai-utils/
-#组件临时目录
+#tmp dir
+TMP_DIR=/tmp/saasjit/lnmp-utils/
 TMP_COM_DIR=${TMP_DIR}component/
-#模块临时目录
 TMP_MOD_DIR=${TMP_DIR}module/
-#资源包的临时目录
 TMP_PKG_DIR=${TMP_DIR}pkg/
-#资源的存放目录
+
+# source
 SOURCE_DIR=${TMP_DIR}source/
-
 if [[ "${CURRENT_IS_BUILD}" == "1" ]];then
-	SOURCE_DIR=$CURRENT_DIR/build/
+	SOURCE_DIR=$CURRENT_DIR/build/linux/
 fi
-
-#资源的模块存放目录
 SOURCE_MODULE_DIR=${SOURCE_DIR}module/
-#资源的组件存放目录
 SOURCE_COMPONENT_DIR=${SOURCE_DIR}component/
 
-#默认安装目录
-DEFAULT_INSTALL_DIR=/usr/local/
-
-#网站目录
+# data setting
+#DATA_DIR=/data
 DATA_WEB_DIR=${DATA_DIR}web/
-#数据库目录
 DATA_DB_DIR=${DATA_DIR}db/
-#script文件路径
 DATA_SCRIPT_DIR=${DATA_DIR}script/
-#conf文件路径
 DATA_CONF_DIR=${DATA_DIR}conf/
-#bak文件路径
 DATA_BAK_DIR=${DATA_DIR}bak/
-#LOG存放目录
 DATA_LOG_DIR=${DATA_DIR}log/
-#DFS存储目录
 DATA_DFS_DIR=${DATA_DIR}dfs/
-#缓存文件路径
 DATA_CACHE_DIR=${DATA_DIR}cache/
+DATA_INSTALL_LOG=${DATA_DIR}install.log
 
-#LOG文件路径
-DATA_LOG_FILE=${DATA_DIR}install.log
-
-#模块目录
+# module init
 MOD_DIR=""
-#模块名称
 MOD_NAME=""
-#模块安装文件
 MOD_INSTALL_SCRIPT=""
-
-#模块安装包目录
 MOD_PACKAGE_DIR=""
-
-#模块配置目录
 MOD_CONF_DIR=""
 
-#组件目录
+# component init
 COM_DIR=""
-
-#组件名称
 COM_NAME=""
-
-#组件源码文件
 COM_SOURCE_FILE=""
-
-#组件安装目录
 COM_INSTALL_DIR=""
-
-#组件安装脚本
 COM_INSTALL_SCRIPT=""
-
-#组件安装包目录
 COM_PACKAGE_DIR=""
-
-#组件配置目录
 COM_CONF_DIR=""
-
-#组件的配置目录
 COM_DATA_CONF_DIR=""
-
-#组件的DB目录
 COM_DATA_DB_DIR=""
-
-#组件的脚本目录
 COM_DATA_SCRIPT_DIR=""
-
-#组件的日志目录
 COM_DATA_LOG_DIR=""
 
 
-#fun list
-#输出日志
+# define function
 outlog(){
-	local _d=`date +"%Y-%m-%d %H:%M:%S"`
-	echo -e "$_d $1">> $DATA_LOG_FILE
-}
-#临时文件夹清理
-tmp_clear() {
-	if [ "$TMP_DIR" != "" ] && [ -d "$TMP_DIR" ];then
-    	rm -rf $TMP_DIR/*
-	fi
+	local date=`date +"%Y-%m-%d %H:%M:%S"`
+	echo "${date} ${1}"|tee -a $DATA_INSTALL_LOG
 }
 
-#错误退出
-error(){
-        echo -e "\033[0;31;1m Zeroai-utils Installer Error:\033[0m\n  ${1}";
-	outlog "Error: $1"
+error() {
+	echo -e "\033[0;31;1m Installation Failed:\033[0m\n  ${1}";
+	outlog "${1}"
 	tmp_clear
-        exit 1;
+	exit 1;
 }
 
-#添加用户
-user_add(){
-	local _g=$1
-	local _u=$2
+user_add() {
+	local g=$1
+	local u=$2
 
-	if [ "$_g" == "" ];then
+	if [ "${g}" == "" ]; then
 		return;
 	fi
 
-	if [ "$_u" == "" ];then
-		_u=$_g;
+	if [ "${u}" == "" ]; then
+		u="${g}";
 	fi
 
-	if [ `cat /etc/group|grep "^${_g}:"|wc -l` -eq "0" ];then
-		groupadd $_g
+	if [ `cat /etc/group|grep "^${g}:"|wc -l` -eq "0" ]; then
+		groupadd $g
 	fi
-    if [ `cat /etc/passwd|grep "^$_u:"|wc -l` -eq "0" ];then
-                useradd -g $_g  $_u
+    if [ `cat /etc/passwd|grep "^${u}:"|wc -l` -eq "0" ]; then
+		useradd -g $g  $u
     fi
-
 }
 
-#生成目录
-createdir(){
-        local _p;
-	if [ "$1" = "" ];then
+createdir() {
+	if [ "${1}" = "" ]; then
 		return;
 	fi
-        for _p in $@;
-        do
-        	if [ -d "$_p" ];then
+	for p in $@; do
+		if [ -d "$_p" ]; then
 			continue;
 		fi
-		mkdir -p -m 777 $_p;
-        done
+		mkdir -p -m 777 $p;
+	done
 }
 
 pkg_install() {
-	if [ "$SYSTEM_NAME" == 'centos' ]; then
-		yum_install $@;
+	if [ "${SYSTEM_NAME}" == 'centos' ]; then
+		yum_install "$@";
 	fi
 }
 
 pkg_uninstall() {
-	if [ "$SYSTEM_NAME" == 'centos' ]; then
-		yum_uninstall $@;
+	if [ "${SYSTEM_NAME}" == 'centos' ]; then
+		yum_uninstall "$@";
 	fi
 }
 
-#根据端口删除进程
-killport(){
-        if [ ! "$1" ];then
-                return;
-        fi
-        local _pn= `netstat -anp|grep ":$1\s"|awk '{print $7}'|awk -F'/' '{print $2}'|awk -F':' '{print $1}'`
-        if [ "$_PN" != "" ];then
-                killall -9 $_pn
-        fi
-}
-#必须组件
-require(){
-	com_install "$*";
+killport() {
+	if [ ! "${1}" ]; then
+		return;
+	fi
+	local pn= `netstat -anp|grep ":$1\s"|awk '{print $7}'|awk -F'/' '{print $2}'|awk -F':' '{print $1}'`
+	if [ "${pn}" != "" ]; then
+		killall -9 $pn
+	fi
 }
 
-#安装
-install(){
-        if [ "$CURRENT_MODE" = "c" ];then
-                com_install "$1"
-        elif [ "$CURRENT_MODE" = "m" ];then
-                mod_install "$1"
-        fi
-}
-
-#初始化组件临时文件
-com_tmp_init(){
-		echo "删除组件的临时文件"
-        if [ "$TMP_COM_DIR" != "" ];then
-                if [ ! -d $TMP_COM_DIR ];then
-                        createdir $TMP_COM_DIR
-                else
-                        chmod -R 777 $TMP_COM_DIR
-                fi
-                rm -rf  $TMP_COM_DIR"*"
-        fi
-}
-
-_SOURCE_PKG_CONF=""
-pkg_conf_get(){
-	echo $SOURCE_URL"pkg.cnf"
-	if [ "${_SOURCE_PKG_CONF}" == "" ];then
-		
-		if [ `curl -s -i $SOURCE_URL"pkg.cnf"|grep -e 'HTTP/1.1 200 OK' -e 'HTTP/2 200' |wc -l` == '0' ];then
-			error "url connect timeout! ${SOURCE_URL}"
+pkg_conf_get() {
+	if [ "${PKG_SOURCE_CONF}" == "" ];then
+		if [ `curl -s -i ${SOURCE_URL}"pkg.cnf"|grep -e 'HTTP/1.1 200 OK' -e 'HTTP/2 200' |wc -l` == '0' ];then
+			error "Curl connect timeout, ${SOURCE_URL}"
 		fi
-		_SOURCE_PKG_CONF=`curl -s $SOURCE_URL"pkg.cnf"|tr "\n" " "`
+		PKG_SOURCE_CONF=`curl -s ${SOURCE_URL}"pkg.cnf"|tr "\n" " "`
 	fi
-	echo -e ${_SOURCE_PKG_CONF[*]}|tr " " "\n"
+	echo -e ${PKG_SOURCE_CONF[*]}|tr " " "\n"
+}
+
+com_tmp_init() {
+	if [ "${TMP_COM_DIR}" != "" ]; then
+		if [ -e $TMP_COM_DIR ]; then
+			rm -rf  $TMP_COM_DIR"*"
+		else
+			createdir $TMP_COM_DIR
+        fi
+	fi
 }
 
 com_source_get() {
-	local _cname=$1
-	local _cdir=$2
-	local cName="linux-component-${_cname}"
-	local _pkgfile="${PKG_COMPONENT_DIR}${cName}.zip"
-
-	if [ ! -f "${_pkgfile}" ];then
-		pkg_conf_get
-		if [ `pkg_conf_get|grep ${cName}|wc -l` == "0" ];then
+	local cname=$1
+	local cdir=$2
+	local com_name="linux-component-"${cname}
+	
+	local pkg_file=${PKG_COMPONENT_DIR}${com_name}".zip"	
+	local pkg_tmp_dir=""
+	local pkg_url=""
+	local pkg_list=""
+	if [ ! -f "${pkg_file}" ]; then
+		
+		if [ `pkg_conf_get|grep $com_name|wc -l` == "0" ]; 
+		then
 			return
 		fi
 
-		local _tmpDir=$TMP_PKG_DIR"$cName/"
-		if [ -e "$_tmpDir" ];then
-			if [ ! -d "$_tmpDir" ];then
-				rm -rf $_tmpDir
-			fi
-			cd $_tmpDir && rm -rf *
+		pkg_tmp_dir=$TMP_PKG_DIR$com_name"/"
+		if [ "$pkg_tmp_dir" != "" ] && [ -e "$pkg_tmp_dir" ]; 
+		then
+			rm -rf $pkg_tmp_dir
 		else
-			mkdir -m 777 -p $_tmpDir
+			mkdir -m 777 -p $pkg_tmp_dir
+		fi
+		
+		cd $pkg_tmp_dir
+		pkg_url=$SOURCE_URL"pkg/"$com_name".cnf"
+		pkg_list=(`curl -s $pkg_url|tr "\n" " "`)
+		
+		echo "" > "${com_name}.cnf"
+		for fname in "${pkg_list[@]}"; do
+			furl=$pkg_url$fname
+			echo $furl >> "${com_name}.cnf"
+		done
+		
+		wget -i "${com_name}.cnf"
+		zip "${com_name}.zip" -s=0 --out $pkg_file
+	fi
+	unzip $pkg_file -d $cdir
+}
+
+com_install_init() {
+	if [ "$1" = "" ]; then
+		return;
+	fi
+	
+	COM_NAME="$1"
+	COM_DIR="${SOURCE_COMPONENT_DIR}${com}/"
+	COM_PACKAGE_DIR="${COM_DIR}package/"
+	COM_SOURCE_FILE=""
+	COM_CONF_DIR="${COM_DIR}conf/"
+	COM_INSTALL_SCRIPT="${COM_DIR}install_${SYSTEM_VERSION}.sh"
+	COM_INSTALL_DEFAULT_SCRIPT="${COM_DIR}install.sh"
+	COM_INSTALL_DIR="${INSTALL_DIR}${com}/"
+	COM_DATA_CONF_DIR="${DATA_CONF_DIR}${com}/"
+	COM_DATA_DB_DIR="${DATA_DB_DIR}${com}/"
+	COM_DATA_SCRIPT_DIR="${DATA_SCRIPT_DIR}${com}/"
+	COM_DATA_LOG_DIR="${DATA_LOG_DIR}${com}/"
+	COM_DATA_CACHE_DIR="${DATA_CACHE_DIR}$com/"
+}
+
+com_install_clear() {
+	if [ "$1" = "" ]; then
+		return;
+	fi
+	
+	COM_NAME="$1"
+	COM_DIR=""
+	COM_PACKAGE_DIR=""
+	COM_SOURCE_FILE=""
+	COM_CONF_DIR=""
+	COM_INSTALL_SCRIPT=""
+	COM_INSTALL_DIR=""
+	COM_DATA_CONF_DIR=""
+	COM_DATA_DB_DIR=""
+	COM_DATA_SCRIPT_DIR=""
+	COM_DATA_LOG_DIR=""
+	COM_DATA_CACHE_DIR=""
+}
+
+com_install() {
+	if [ "${1}" = "" ]; then
+		return;
+	fi
+	
+	local com
+	for com in $1; do
+		com_install_init "$com"
+		if [ ! -d "${COM_DIR}" ]; then
+			com_source_get "$COM_NAME" "$SOURCE_COMPONENT_DIR"
+			if [ ! -d "${COM_DIR}" ]; then
+				error "Component:${com} failed to download!"
+			fi
+		fi
+				
+		if [ ! -f "${COM_INSTALL_SCRIPT}" ] && [ ! -f "${COM_INSTALL_DEFAULT_SCRIPT}" ]; then
+			error "Failed to install component ${com}: ${COM_INSTALL_SCRIPT} && ${COM_INSTALL_DEFAULT_SCRIPT} is not exists!"
 		fi
 
-		local _pkgurl="${SOURCE_URL}pkg/"
-		local _zipfiles=(`curl -s ${_pkgurl}${cName}".cnf"|tr "\n" " "`)
-		cd $_tmpDir
-		#wget ${_pkgurl}${cName}".cnf"
-		echo "" > ${cName}".cnf"
-		for _zname in "${_zipfiles[@]}"
-		do
-			_zurl="${_pkgurl}${_zname}"
-			echo ${_zurl} >> ${cName}.cnf
-		done
-		wget -i ${cName}".cnf"
-		zip ${cName}.zip -s=0 --out $_pkgfile
-	fi
-	unzip $_pkgfile -d $_cdir
-}
-
-#安装组件
-com_install(){
-
-        local _com;
-        for _com in $1;
-        do
-                COM_NAME=$_com
-                COM_DIR="$SOURCE_COMPONENT_DIR$_com/"
-                COM_PACKAGE_DIR="${COM_DIR}package/"
-                COM_SOURCE_FILE=""
-                COM_CONF_DIR="${COM_DIR}conf/"
-                COM_INSTALL_SCRIPT="${COM_DIR}install.${SYSTEM_VERSION}.sh"
-                COM_INSTALL_DEFAULT_SCRIPT="${COM_DIR}install.sh"
-                COM_INSTALL_DIR="${INSTALL_DIR}$_com/"
-                COM_DATA_CONF_DIR="${DATA_CONF_DIR}$_com/"
-                COM_DATA_DB_DIR="${DATA_DB_DIR}$_com/"
-                COM_DATA_SCRIPT_DIR="${DATA_SCRIPT_DIR}$_com/"
-                COM_DATA_LOG_DIR="${DATA_LOG_DIR}$_com/"
-                COM_DATA_CACHE_DIR="${DATA_CACHE_DIR}$_com/"
-                if [ ! -d $COM_DIR ];then
-                		com_source_get "$COM_NAME" "$SOURCE_COMPONENT_DIR"
-                		if [ ! -d $COM_DIR ];then
-                        	error "组件${_com}安装失败,目录${COM_DIR}不存在!"
-                        fi
-                fi
-				
-                if [ ! -f $COM_INSTALL_SCRIPT ] && [ ! -f $COM_INSTALL_DEFAULT_SCRIPT ]; then
-                        error "组件${_com}安装失败,${COM_INSTALL_SCRIPT} && ${COM_INSTALL_DEFAULT_SCRIPT}不存在!"
-                fi
-                
-                com_tmp_init
-
-          	echo "安装组件包：${_com}开始";
-          	cd $CURRENT_DIR
-          		
-          		if [ -f $COM_INSTALL_SCRIPT ]; then
-                	. $COM_INSTALL_SCRIPT
-                elif [ -f $COM_INSTALL_DEFAULT_SCRIPT ]; then
-                	. $COM_INSTALL_DEFAULT_SCRIPT
-                fi
-                
-                echo "安装组件包：${_com}结束";
-                sleep 2
-
-
-                COM_NAME=$_com
-                COM_DIR=""
-				COM_PACKAGE_DIR=""
-				COM_SOURCE_FILE=""
-				COM_CONF_DIR=""
-				COM_INSTALL_SCRIPT=""
-				COM_INSTALL_DIR=""
-                COM_DATA_CONF_DIR=""
-                COM_DATA_DB_DIR=""
-                COM_DATA_SCRIPT_DIR=""
-                COM_DATA_LOG_DIR=""
-                COM_DATA_CACHE_DIR=""
-        done
-
-        com_tmp_init
+		echo "component ${com} installation started!";
+		cd $CURRENT_DIR
+		if [ -f "${COM_INSTALL_SCRIPT}" ]; then
+			echo $COM_INSTALL_SCRIPTß
+			source $COM_INSTALL_SCRIPT
+		elif [ -f $COM_INSTALL_DEFAULT_SCRIPT ]; then
+			echo $COM_INSTALL_DEFAULT_SCRIPT
+			source $COM_INSTALL_DEFAULT_SCRIPT
+		fi
+        sleep 2
+        echo "component：${com} installation stoped"
+		com_install_clear "$com"
+	done
 
 }
 
-
-#解压组件的tar文件
-com_untar(){
-        tar zxvf $1 -C $TMP_COM_DIR >/dev/null
+com_untar() {
+	tar zxvf $1 -C $TMP_COM_DIR > /dev/null
 }
 
-#解压组件的tar文件
-com_untarxz(){
-        tar xvf $1 -C $TMP_COM_DIR >/dev/null
+com_untarxz() {
+	tar xvf $1 -C $TMP_COM_DIR > /dev/null
 }
 
-#解压组件的zip文件
 com_unzip() {
-        unzip  -u $1  -d $TMP_COM_DIR>/dev/null
+	unzip  -u $1  -d $TMP_COM_DIR > /dev/null
 }
 
 com_unbz2(){
-        tar jxvf $1 -C $TMP_COM_DIR >/dev/null
+	tar jxvf $1 -C $TMP_COM_DIR > /dev/null
 }
 
-com_init(){
-		local _isdelete=""
-        COM_SOURCE_FILE="${COM_PACKAGE_DIR}$1"
-        if [ -d $COM_INSTALL_DIR ]; then
-                echo -n "${COM_NAME}已经安装，是否删除(y/n):"
-                read _isdelete
-                if [ "${_isdelete}" = "y" ] || [ "${_isdelete}" = "Y" ];then
-                	#rm -rf $COM_INSTALL_DIR
-                	echo "aaa"
-                else
-                	error "${COM_NAME} is stopped and exit!"
-                fi
-        fi
-        if [ ! -f $COM_SOURCE_FILE ]; then
-                error "$COM_NAME安装失败, $COM_SOURCE_FILE不存在!"
-        fi
+com_init() {
+	local is_cover=""
+	COM_SOURCE_FILE="${COM_PACKAGE_DIR}${1}"
+	
+	if [ ! -f "${COM_SOURCE_FILE}" ]; then
+		error "Failed to install component ${COM_NAME}: ${COM_SOURCE_FILE} is not exists!"
+	fi
+	    
+	if [ -d "${COM_INSTALL_DIR}" ]; then
+		echo -n "component ${COM_NAME} has been installed. Do you want to overwrite the installation(y/n):"
+		read is_cover
+		if [ "${is_cover}" != "y" ] && [ "${is_cover}" != "Y" ]; then
+			error "Failed to install component ${COM_NAME}: installation terminated!"
+		fi
+	fi
 }
 
-#组件包检测
 com_pkg_check() {
-	for _pkg in "$@"
-	do
-		if [ ! -f "$_pkg" ]; then
-        	error "${COM_NAME}安装失败,${_pkg}不存在!"
+	for pkg in "$@"; do
+		if [ ! -f "${pkg}" ]; then
+        	error "Failed to install component {COM_NAME}: ${pkg} is not exists!"
 		fi
 	done
 }
 
-com_file_replace(){
-	local _s=$1
-	local _t=$2
-	local _path=$3
-	_t=${_t//\//\\\/}
-	sed -i "s/${_s}/${_t}/g" $_path
+com_file_replace() {
+	local s=$1
+	local t=$2
+	local path=$3
+	t=${t//\//\\\/}
+	sed -i "s/${s}/${t}/g" $path
 }
-com_replace(){
-	for _path in "$@"
-	do
-		if [ ! -f "$_path" ];then
-			error "${COM_NAME}安装失败,${_path}不存在!"
+
+com_replace() {
+	for path in "$@"; do
+		if [ ! -f "$path" ]; then
+			error "Failed to install component ${COM_NAME},${path} is not exists!"
 		fi
-		com_file_replace '{COM_DATA_CONF_DIR}' "${COM_DATA_CONF_DIR}" $_path
-		com_file_replace '{COM_DATA_DB_DIR}' "${COM_DATA_DB_DIR}" $_path
-		com_file_replace '{COM_INSTALL_DIR}' "${COM_INSTALL_DIR}" $_path
-		com_file_replace '{COM_DATA_CACHE_DIR}' "${COM_DATA_CACHE_DIR}" $_path
-		com_file_replace '{COM_DATA_SCRIPT_DIR}' "${COM_DATA_SCRIPT_DIR}" $_path
-		com_file_replace '{COM_DATA_LOG_DIR}' "${COM_DATA_LOG_DIR}" $_path
-		com_file_replace '{CPU_NUM}' "${CPU_NUM}" $_path
+		com_file_replace '{COM_DATA_CONF_DIR}' "${COM_DATA_CONF_DIR}" $path
+		com_file_replace '{COM_DATA_DB_DIR}' "${COM_DATA_DB_DIR}" $path
+		com_file_replace '{COM_INSTALL_DIR}' "${COM_INSTALL_DIR}" $path
+		com_file_replace '{COM_DATA_CACHE_DIR}' "${COM_DATA_CACHE_DIR}" $path
+		com_file_replace '{COM_DATA_SCRIPT_DIR}' "${COM_DATA_SCRIPT_DIR}" $path
+		com_file_replace '{COM_DATA_LOG_DIR}' "${COM_DATA_LOG_DIR}" $path
+		com_file_replace '{CPU_NUM}' "${CPU_NUM}" $path
 	done
 }
 
-com_install_test(){
-	if [ ! -e "${COM_INSTALL_DIR}" ];then
-		error "${COM_NAME} installation failed: the installation path ${COM_INSTALL_DIR} is not exists!"
+com_install_test() {
+	if [ ! -e "${COM_INSTALL_DIR}" ]; then
+		error "Failed to install component ${COM_NAME}: the installation path ${COM_INSTALL_DIR} is not exists!"
 	fi
 
-	for _path in $@
-	do
-		if [ ! -e "$_path" ];then
-			error "${COM_NAME} installation failed: the installation path ${_path} is not exists!"
+	for path in $@; do
+		if [ ! -e "$path" ];then
+			error "Failed to install component ${COM_NAME}: the installation path ${path} is not exists!"
 		fi
 	done
 }
-#初始化模块临时文件
-mod_tmp_init(){
-        if [ "$TMP_MOD_DIR" != "" ];then
-                if [ ! -d $TMP_MOD_DIR ];then
-                        createdir $TMP_MOD_DIR
-                else
-                        chmod -R 777 $TMP_MOD_DIR
-                fi
-                rm -rf  $TMP_MOD_DIR"*"
-        fi
+
+com_tmp_clear() {
+	for com in $1; do
+		cdir=${TMP_COM_DIR}${com}"/"
+		if  [ "${com}" != "" ] && [ -d "${cdir}" ]; then
+			echo "com_tmp_clear: ${com}"
+			rm -rf "${cdir}/*"
+		fi		
+	done
 }
 
-#安装模块
-mod_install(){
-        local _mod;
-        for _mod in $1;
-        do
-                MOD_DIR="${SOURCE_MODULE_DIR}$_mod/"
-                MOD_NAME=$_mod
-                MOD_PACKAGE_DIR="${MOD_DIR}package/"
-                MOD_CONF_DIR="${MOD_DIR}conf/"
-                MOD_INSTALL_SCRIPT="${SOURCE_MODULE_DIR}$_mod/install.sh"
+require(){
+	local com_current_name="$COM_NAME"
+	com_install "$*";
+	if [ "${com_current_name}" != "" ]; then
+		com_install_init "${com_current_name}"
+	fi
+}
 
-                if [ ! -d $MOD_DIR ];then
-                        error "模块${_mod}安装失败,目录${MOD_DIR}不存在!"
-                fi
+mod_tmp_init() {
+	if [ "${TMP_MOD_DIR}" != "" ];then
+		if [ -e "${TMP_MOD_DIR}" ];then
+			rm -rf  "${TMP_MOD_DIR}*"
+		else
+			createdir "${TMP_MOD_DIR}"
+		fi
+	fi
+}
 
-                if [ ! -f $MOD_INSTALL_FILE ]; then
-                        error "模块${_mod}安装失败,${MOD_INSTALL_FILE}不存在!"
-                fi
+mod_install() {
+	if [ "${1}" = "" ]; then
+		return
+	fi
+	
+	local mod
+	for mod in $1; do
+		MOD_DIR="${SOURCE_MODULE_DIR}${mod}/"
+		MOD_NAME=$mod
+		MOD_PACKAGE_DIR="${MOD_DIR}package/"
+		MOD_CONF_DIR="${MOD_DIR}conf/"
+		MOD_INSTALL_SCRIPT="${SOURCE_MODULE_DIR}${mod}/install.sh"
+	
+		if [ ! -d "${MOD_DIR}" ]; then
+			error "Failed to install module ${mod}: ${MOD_DIR} is not exists!"
+		fi
 
-                mod_tmp_init
+		if [ ! -f "${MOD_INSTALL_SCRIPT}" ]; then
+			error "Failed to install module ${mod}: ${MOD_INSTALL_SCRIPT} is not exists!"
+		fi
+                
+		echo "Module ${mod} installation started!"
+		cd $CURRENT_DIR
+		source $MOD_INSTALL_SCRIPT
+		echo "Module ${mod} installation successfully!"
+		sleep 2
 
-                echo "安装模块：${_mod}开始";
-                cd $CURRENT_DIR
-                . $MOD_INSTALL_SCRIPT
-                echo "安装模块：${_mod}结束";
-                sleep 2
-
-                MOD_DIR=""
-                MOD_NAME=""
-                MOD_PACKAGE_DIR=""
-                MOD_CONF_DIR=""
-                MOD_INSTALL_SCRIPT=""
-        done
-        mod_tmp_init
+		MOD_DIR=""
+		MOD_NAME=""
+		MOD_PACKAGE_DIR=""
+		MOD_CONF_DIR=""
+		MOD_INSTALL_SCRIPT=""
+   done
 }
 
 
-#解压组件的tar文件
-mod_untar(){
-        tar zxvf $1 -C $TMP_MOD_DIR >/dev/null
+mod_untar() {
+	tar zxvf $1 -C $TMP_MOD_DIR >/dev/null
 }
 
-#解压组件的zip文件
 mod_unzip() {
-        unzip -f $1 -d $TMP_MOD_DIR >/dev/null
-}
-mod_unbz2(){
-        tar jxvf $1 -C $TMP_MOD_DIR >/dev/null
+	unzip -f $1 -d $TMP_MOD_DIR >/dev/null
 }
 
-#是否有某个参数
+mod_unbz2() {
+	tar jxvf $1 -C $TMP_MOD_DIR >/dev/null
+}
+
+mod_tmp_clear() {
+	if [ "$1" = "" ]; then
+		return;
+	fi
+	local mod
+	for mod in $1; do
+		mdir="${TMP_MOD_DIR}${mod}/"
+		if  [ "${mod}" != "" ] && [ -d "${mdir}" ]; then
+			echo "mod_tmp_clear: ${mod}"
+			rm -rf "${mdir}/*"
+		fi
+	done
+}
+
 hasoption(){
 	inarray "${1}" "${CURRENT_OPTIONS[*]}"
 }
 
-#最大编译内核
-CPU_NUM=`cat /proc/cpuinfo|grep "model name"|wc -l`
-if [ -n "$(echo $MAKE_MAX_CPU_NAME| sed -n "/^[0-9]\+$/p")" ] && [ $CPU_NUM -gt "$MAKE_MAX_CPU_NAME" ]; then
+tmp_clear() {
+	if [ "${TMP_DIR}" != "" ] && [ -d "${TMP_DIR}" ]; then
+		com_tmp_clear "${CURRENT_COMPONENTS[*]}"
+		mod_tmp_clear "${CURRENT_MODES[*]}"
+	fi
+}
+
+CPU_NUM=`cat /proc/cpuinfo|grep -e "model name" -e "processor"|wc -l`
+if [ -n $(echo $MAKE_MAX_CPU_NAME| sed -n "/^[0-9]\+$/p") ] && [ $CPU_NUM -gt $MAKE_MAX_CPU_NAME ]; then
 	CPU_NUM=$MAKE_MAX_CPU_NAME
 fi
 
-#创建data文件夹
+if [ $CPU_NUM -lt 1 ]; then
+	CPU_NUM=1
+fi
+
 createdir $DATA_DIR $DATA_BAK_DIR
-
-#创建PKG文件夹
 createdir $PKG_DIR $PKG_COMPONENT_DIR $PKG_MODULE_DIR
-
-#创建SOURCE文件夹
 createdir $SOURCE_DIR $SOURCE_COMPONENT_DIR $SOURCE_MODULE_DIR
-
-#需要备份的data文件夹路径
 createdir $DATA_BAK_DIR $DATA_WEB_DIR $DATA_DB_DIR $DATA_SCRIPT_DIR $DATA_CONF_DIR
 
-#加载系统指定初始化脚本
 if [ -f /etc/centos-release ]; then
 	SYSTEM_NAME="centos"
 	SYSTEM_VERSION="centos.7x"
 fi
 
-INSTALL_SYSTEM_SCRIPT="${CURRENT_DIR}/init.${SYSTEM_NAME}.sh"
-echo $INSTALL_SYSTEM_SCRIPT
-
+INSTALL_SYSTEM_SCRIPT="${CURRENT_DIR}/init_${SYSTEM_NAME}.sh"
 if [ -f $INSTALL_SYSTEM_SCRIPT ]; then
-. $INSTALL_SYSTEM_SCRIPT
+	source $INSTALL_SYSTEM_SCRIPT
 fi
 
+if [ ${#CURRENT_COMPONENTS} == 0 ] && [  ${#CURRENT_MODES} == 0 ];then
+	CURRENT_MODES[0]="lnmp"
+fi
+
+com_tmp_init
 com_install "${CURRENT_COMPONENTS[*]}"
 
+mod_tmp_init
 mod_install "${CURRENT_MODES[*]}"
 
-#清理临时文件夹
-if [ "${CURRENT_IS_NO_CLEAR}" == '0' ];then
+if [ "${CURRENT_IS_NO_CLEAR}" == '0' ]; then
 	tmp_clear
 fi
