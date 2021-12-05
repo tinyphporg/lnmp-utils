@@ -108,5 +108,5 @@ lnmp一键安装
 ```shell
    git clone https://github.com/saasjit/lnmp-utils.git
    cd lnmp-utils
-   ./install.sh -c lsync
+   ./install.sh -c lsyncd
 ```
