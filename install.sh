@@ -72,7 +72,7 @@ CURRENT_DIR=$(cd `dirname $0`; pwd)
 CURRENT_IS_QUIET="0"
 CURRENT_IS_NO_CLEAR="0"
 CURRENT_COMPONENTS=()
-CURRENT_MODES=()
+CURRENT_MODULES=()
 CURRENT_OPTIONS=()
 
 optinit
@@ -92,7 +92,7 @@ while [ -n "$1" ]; do
         -m|--mode)
     		shift;
     		while [ "${1}" != "" ] && [ "${1:0:1}" != "-" ]; do
-    			CURRENT_MODES[${#CURRENT_MODES}]=$1
+    			CURRENT_MODULES[${#CURRENT_MODULES}]=$1
     			shift;
     		done
         	;;
@@ -135,7 +135,8 @@ PKG_COMPONENT_DIR=${PKG_DIR}component/
 PKG_SOURCE_CONF=""
 
 #tmp dir
-TMP_DIR=/tmp/saasjit/lnmp-utils/
+TMP_RAND=$[$RANDOM%10000+30000]
+TMP_DIR=/tmp/saasjit/lnmp-utils/${TMP_RAND}/
 TMP_COM_DIR=${TMP_DIR}component/
 TMP_MOD_DIR=${TMP_DIR}module/
 TMP_PKG_DIR=${TMP_DIR}pkg/
@@ -298,7 +299,7 @@ com_source_get() {
 		
 		echo "" > "${com_name}.cnf"
 		for fname in "${pkg_list[@]}"; do
-			furl=$pkg_url$fname
+			furl=$SOURCE_URL"pkg/"$fname
 			echo $furl >> "${com_name}.cnf"
 		done
 		
@@ -329,11 +330,7 @@ com_install_init() {
 }
 
 com_install_clear() {
-	if [ "$1" = "" ]; then
-		return;
-	fi
-	
-	COM_NAME="$1"
+	COM_NAME=""
 	COM_DIR=""
 	COM_PACKAGE_DIR=""
 	COM_SOURCE_FILE=""
@@ -377,7 +374,7 @@ com_install() {
 		fi
         sleep 2
         echo "component：${com} installation stoped"
-		com_install_clear "$com"
+		com_install_clear
 	done
 
 }
@@ -458,16 +455,6 @@ com_install_test() {
 	done
 }
 
-com_tmp_clear() {
-	for com in $1; do
-		cdir=${TMP_COM_DIR}${com}"/"
-		if  [ "${com}" != "" ] && [ -d "${cdir}" ]; then
-			echo "com_tmp_clear: ${com}"
-			rm -rf "${cdir}/*"
-		fi		
-	done
-}
-
 require(){
 	local com_current_name="$COM_NAME"
 	com_install "$*";
@@ -486,6 +473,65 @@ mod_tmp_init() {
 	fi
 }
 
+mod_source_get() {
+    local mname=$1
+    local mdir=$2
+    local mod_name="linux-module-"${mname}
+    
+    local pkg_file=${PKG_COMPONENT_DIR}${mod_name}".zip"    
+    local pkg_tmp_dir=""
+    local pkg_url=""
+    local pkg_list=""
+    if [ ! -f "${pkg_file}" ]; then
+        
+        if [ `pkg_conf_get|grep $mod_name|wc -l` == "0" ]; 
+        then
+            return
+        fi
+
+        pkg_tmp_dir=$TMP_PKG_DIR$mod_name"/"
+        if [ "$pkg_tmp_dir" != "" ] && [ -e "$pkg_tmp_dir" ]; 
+        then
+            rm -rf $pkg_tmp_dir
+        else
+            mkdir -m 777 -p $pkg_tmp_dir
+        fi
+        
+        cd $pkg_tmp_dir
+        pkg_url=$SOURCE_URL"pkg/"$mod_name".cnf"
+        pkg_list=(`curl -s $pkg_url|tr "\n" " "`)
+        
+        echo "" > "${mod_name}.cnf"
+        for fname in "${pkg_list[@]}"; do
+            furl=$SOURCE_URL"pkg/"$fname
+            echo $furl >> "${mod_name}.cnf"
+        done
+        
+        wget -i "${mod_name}.cnf"
+        zip "${mod_name}.zip" -s=0 --out $pkg_file
+    fi
+    unzip $pkg_file -d $mdir
+}
+
+mod_install_init() {
+    if [ "$1" = "" ]; then
+        return;
+    fi
+    MOD_DIR="${SOURCE_MODULE_DIR}${1}/"
+    MOD_NAME=$1
+    MOD_PACKAGE_DIR="${MOD_DIR}package/"
+    MOD_CONF_DIR="${MOD_DIR}conf/"
+    MOD_INSTALL_SCRIPT="${SOURCE_MODULE_DIR}${mod}/install.sh"
+}
+
+mod_install_clear() {
+    MOD_DIR=""
+    MOD_NAME=""
+    MOD_PACKAGE_DIR=""
+    MOD_CONF_DIR=""
+    MOD_INSTALL_SCRIPT=""
+}
+
 mod_install() {
 	if [ "${1}" = "" ]; then
 		return
@@ -493,14 +539,12 @@ mod_install() {
 	
 	local mod
 	for mod in $1; do
-		MOD_DIR="${SOURCE_MODULE_DIR}${mod}/"
-		MOD_NAME=$mod
-		MOD_PACKAGE_DIR="${MOD_DIR}package/"
-		MOD_CONF_DIR="${MOD_DIR}conf/"
-		MOD_INSTALL_SCRIPT="${SOURCE_MODULE_DIR}${mod}/install.sh"
-	
+		mod_install_init "${mod}"
 		if [ ! -d "${MOD_DIR}" ]; then
-			error "Failed to install module ${mod}: ${MOD_DIR} is not exists!"
+		    mod_source_get "$MOD_NAME" "$SOURCE_MODULE_DIR"
+            if [ ! -d "${MOD_DIR}" ]; then
+                error "Module:${mod} failed to download!"
+            fi
 		fi
 
 		if [ ! -f "${MOD_INSTALL_SCRIPT}" ]; then
@@ -512,12 +556,7 @@ mod_install() {
 		source $MOD_INSTALL_SCRIPT
 		echo "Module ${mod} installation successfully!"
 		sleep 2
-
-		MOD_DIR=""
-		MOD_NAME=""
-		MOD_PACKAGE_DIR=""
-		MOD_CONF_DIR=""
-		MOD_INSTALL_SCRIPT=""
+        mod_install_clear
    done
 }
 
@@ -534,29 +573,15 @@ mod_unbz2() {
 	tar jxvf $1 -C $TMP_MOD_DIR >/dev/null
 }
 
-mod_tmp_clear() {
-	if [ "$1" = "" ]; then
-		return;
-	fi
-	local mod
-	for mod in $1; do
-		mdir="${TMP_MOD_DIR}${mod}/"
-		if  [ "${mod}" != "" ] && [ -d "${mdir}" ]; then
-			echo "mod_tmp_clear: ${mod}"
-			rm -rf "${mdir}/*"
-		fi
-	done
-}
 
 hasoption(){
 	inarray "${1}" "${CURRENT_OPTIONS[*]}"
 }
 
-tmp_clear() {
-	if [ "${TMP_DIR}" != "" ] && [ -d "${TMP_DIR}" ]; then
-		com_tmp_clear "${CURRENT_COMPONENTS[*]}"
-		mod_tmp_clear "${CURRENT_MODES[*]}"
-	fi
+tmp_clear(){
+    if [ "${TMP_DIR}" != "" ] && [ -d "${TMP_DIR}" ]; then
+        rm -rf $TMP_DIR
+    fi
 }
 
 CPU_NUM=`cat /proc/cpuinfo|grep -e "model name" -e "processor"|wc -l`
@@ -583,15 +608,15 @@ if [ -f $INSTALL_SYSTEM_SCRIPT ]; then
 	source $INSTALL_SYSTEM_SCRIPT
 fi
 
-if [ ${#CURRENT_COMPONENTS} == 0 ] && [  ${#CURRENT_MODES} == 0 ];then
-	CURRENT_MODES[0]="lnmp"
+if [ ${#CURRENT_COMPONENTS} == 0 ] && [  ${#CURRENT_MODULES} == 0 ];then
+	CURRENT_MODULES[0]="lnmp"
 fi
 
 com_tmp_init
 com_install "${CURRENT_COMPONENTS[*]}"
 
 mod_tmp_init
-mod_install "${CURRENT_MODES[*]}"
+mod_install "${CURRENT_MODULES[*]}"
 
 if [ "${CURRENT_IS_NO_CLEAR}" == '0' ]; then
 	tmp_clear
