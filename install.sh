@@ -15,7 +15,9 @@ SYSTEM_NAME="centos"
 SYSTEM_VERSION="centos.7x"
 
 #source
+IS_SOURCE=1
 SOURCE_SYSTEM=$SYSTEM_VERSION
+SOURCE_GIT_URL="https://github.com/opensaasnet/lnmp-utils-components.git"
 SOURCE_URL="https://raw.githubusercontent.com/opensaasnet/lnmp-utils-components/master/";
 
 # define functions
@@ -49,7 +51,7 @@ showhelp(){
 	echo "-m|--mode=xxx        Install modules"
 	echo "-o|--option          Options for installing components"
 	echo "                     ./install.sh -c openresty -o fdfs proxy"
-	echo "-b|--build           Build folder for custom component development"
+	echo "-b|--build           Build folder for custom component development(github.com访问不了时使用)."
 	echo "--no-clear           Do not clean up the installation folder. "
 	exit
 }
@@ -74,7 +76,8 @@ CURRENT_IS_NO_CLEAR="0"
 CURRENT_COMPONENTS=()
 CURRENT_MODULES=()
 CURRENT_OPTIONS=()
-
+BUILD_DIR=$CURRENT_DIR"/build"
+GIT_DIR=$CURRENT_DIR"/lnmp-utils-components"
 optinit
 while [ -n "$1" ]; do
     case "${1}" in
@@ -144,8 +147,24 @@ TMP_PKG_DIR=${TMP_DIR}pkg/
 # source
 SOURCE_DIR=${TMP_DIR}source/
 if [[ "${CURRENT_IS_BUILD}" == "1" ]];then
-	SOURCE_DIR=$CURRENT_DIR/build/linux/
+	SOURCE_DIR=$BUILD_DIR/linux/
+	if [ ! -d "$SOURCE_DIR" ];then
+		if [ ! -d $GIT_DIR ];then
+			mkdir -p $GIT_DIR
+		fi
+		cd $GIT_DIR
+		if [ ! -f "$GIT_DIR/pkg.cnf" ] || [ ! -d "$GIT_DIR/pkg" ];then
+			git clone $SOURCE_GIT_URL
+		fi
+		if [ ! -f "$GIT_DIR/pkg.cnf" ] || [ ! -d "$GIT_DIR/pkg" ];then
+			echo "git clone faild:"$SOURCE_GIT_URL
+			exit
+		fi
+		
+		
+	fi
 fi
+
 SOURCE_MODULE_DIR=${SOURCE_DIR}module/
 SOURCE_COMPONENT_DIR=${SOURCE_DIR}component/
 
@@ -251,10 +270,15 @@ killport() {
 
 pkg_conf_get() {
 	if [ "${PKG_SOURCE_CONF}" == "" ];then
-		if [ `curl -s -i ${SOURCE_URL}"pkg.cnf"|grep -e 'HTTP/1.1 200 OK' -e 'HTTP/2 200' |wc -l` == '0' ];then
-			error "Curl connect timeout, ${SOURCE_URL}"
+		if [[ "${CURRENT_IS_BUILD}" == "1" ]] && [[ -f "${GIT_DIR}/pkg.cnf" ]];then
+			PKG_SOURCE_CONF=`cat "${GIT_DIR}/pkg.cnf"|tr "\n" " "`
+		else
+			if [ `curl -s -i ${SOURCE_URL}"pkg.cnf"|grep -e 'HTTP/1.1 200 OK' -e 'HTTP/2 200' |wc -l` == '0' ];then
+				error "Curl connect timeout, ${SOURCE_URL}"
+			fi
+			PKG_SOURCE_CONF=`curl -s ${SOURCE_URL}"pkg.cnf"|tr "\n" " "`
 		fi
-		PKG_SOURCE_CONF=`curl -s ${SOURCE_URL}"pkg.cnf"|tr "\n" " "`
+		
 	fi
 	echo -e ${PKG_SOURCE_CONF[*]}|tr " " "\n"
 }
@@ -273,18 +297,18 @@ com_source_get() {
 	local cname=$1
 	local cdir=$2
 	local com_name="linux-component-"${cname}
-	
 	local pkg_file=${PKG_COMPONENT_DIR}${com_name}".zip"	
 	local pkg_tmp_dir=""
 	local pkg_url=""
+	local pkg_cnf=""
+	local fzip=""
 	local pkg_list=""
 	if [ ! -f "${pkg_file}" ]; then
-		
 		if [ `pkg_conf_get|grep $com_name|wc -l` == "0" ]; 
 		then
 			return
 		fi
-
+		
 		pkg_tmp_dir=$TMP_PKG_DIR$com_name"/"
 		if [ "$pkg_tmp_dir" != "" ] && [ -e "$pkg_tmp_dir" ]; 
 		then
@@ -294,16 +318,25 @@ com_source_get() {
 		fi
 		
 		cd $pkg_tmp_dir
-		pkg_url=$SOURCE_URL"pkg/"$com_name".cnf"
-		pkg_list=(`curl -s $pkg_url|tr "\n" " "`)
-		
-		echo "" > "${com_name}.cnf"
-		for fname in "${pkg_list[@]}"; do
-			furl=$SOURCE_URL"pkg/"$fname
-			echo $furl >> "${com_name}.cnf"
-		done
-		
-		wget -i "${com_name}.cnf"
+		pkg_cnf="${GIT_DIR}/pkg/${com_name}.cnf"
+		if [[ "${CURRENT_IS_BUILD}" == "1" ]] && [[ -f "${pkg_cnf}" ]];then
+			pkg_list=(`cat $pkg_cnf|tr "\n" " "`);
+			for fname in "${pkg_list[@]}"; do
+				fzip=${GIT_DIR}/pkg/$fname
+				if [ -f $fzip ];then
+					\cp -f $fzip $fname;
+				fi
+			done
+		else
+			pkg_url=$SOURCE_URL"pkg/"$com_name".cnf"
+			pkg_list=(`curl -s $pkg_url|tr "\n" " "`)
+			echo "" > "${com_name}.cnf"
+			for fname in "${pkg_list[@]}"; do
+				furl=$SOURCE_URL"pkg/"$fname
+				echo $furl >> "${com_name}.cnf"
+			done
+			wget -i "${com_name}.cnf"
+		fi
 		zip "${com_name}.zip" -s=0 --out $pkg_file
 	fi
 	unzip $pkg_file -d $cdir
