@@ -16,7 +16,7 @@ SYSTEM_VERSION="centos.7x"
 
 #source
 SOURCE_SYSTEM=$SYSTEM_VERSION
-SOURCE_URL="https://raw.githubusercontent.com/saasjit/lnmp-utils-components/master/";
+SOURCE_URL="https://raw.githubusercontent.com/opensaasnet/lnmp-utils-components/master/";
 
 # define functions
 inarray() {
@@ -37,7 +37,7 @@ showhelp(){
 	echo "nosql:   redis memcached"
 	echo "dfs:     fastdfs"
 	echo "node.js: node"
-	echo "From: https://github.com/saasjit/lnmp-utils"
+	echo "From: https://github.com/opensaasnet/lnmp-utils"
     echo "---------------------"
     echo "module list:"	
     echo "lnmp"
@@ -136,7 +136,7 @@ PKG_SOURCE_CONF=""
 
 #tmp dir
 TMP_RAND=$[$RANDOM%10000+30000]
-TMP_DIR=/tmp/saasjit/lnmp-utils/${TMP_RAND}/
+TMP_DIR=/tmp/opensaasnet/lnmp-utils/${TMP_RAND}/
 TMP_COM_DIR=${TMP_DIR}component/
 TMP_MOD_DIR=${TMP_DIR}module/
 TMP_PKG_DIR=${TMP_DIR}pkg/
