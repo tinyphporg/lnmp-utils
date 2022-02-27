@@ -152,7 +152,6 @@ if [[ "${CURRENT_IS_BUILD}" == "1" ]];then
 		if [ ! -d $GIT_DIR ];then
 			mkdir -p $GIT_DIR
 		fi
-		cd $GIT_DIR
 		if [ ! -f "$GIT_DIR/pkg.cnf" ] || [ ! -d "$GIT_DIR/pkg" ];then
 			git clone $SOURCE_GIT_URL
 		fi
