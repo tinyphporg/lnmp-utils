@@ -17,8 +17,8 @@ SYSTEM_VERSION="centos.7x"
 #source
 IS_SOURCE=1
 SOURCE_SYSTEM=$SYSTEM_VERSION
-SOURCE_GIT_URL="https://github.com/opensaasnet/lnmp-utils-components.git"
-SOURCE_URL="https://raw.githubusercontent.com/opensaasnet/lnmp-utils-components/master/";
+SOURCE_GIT_URL="https://github.com/tinyphporg/lnmp-utils-components.git"
+SOURCE_URL="https://raw.githubusercontent.com/tinyphporg/lnmp-utils-components/master/";
 
 # define functions
 inarray() {
@@ -39,7 +39,7 @@ showhelp(){
 	echo "nosql:   redis memcached"
 	echo "dfs:     fastdfs"
 	echo "node.js: node"
-	echo "From: https://github.com/opensaasnet/lnmp-utils"
+	echo "From: https://github.com/tinyphporg/lnmp-utils"
     echo "---------------------"
     echo "module list:"	
     echo "lnmp"
@@ -139,7 +139,7 @@ PKG_SOURCE_CONF=""
 
 #tmp dir
 TMP_RAND=$[$RANDOM%10000+30000]
-TMP_DIR=/tmp/opensaasnet/lnmp-utils/${TMP_RAND}/
+TMP_DIR=/tmp/tinyphporg/lnmp-utils/${TMP_RAND}/
 TMP_COM_DIR=${TMP_DIR}component/
 TMP_MOD_DIR=${TMP_DIR}module/
 TMP_PKG_DIR=${TMP_DIR}pkg/

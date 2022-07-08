@@ -47,11 +47,11 @@ EOT
     ldconfig -v
     fi
 
-    grep "^#patch by opensaasnet/lnmp-utils$" /etc/sysctl.conf >/dev/null
+    grep "^#patch by tinyphporg/lnmp-utils$" /etc/sysctl.conf >/dev/null
     if [ $? != 0 ]; then
 
         cat >>/etc/sysctl.conf<<EOF
-#patch by opensaasnet/lnmp-utils
+#patch by tinyphporg/lnmp-utils
 net.ipv4.ip_forward = 1
 net.ipv4.conf.default.rp_filter = 1
 net.ipv4.conf.default.accept_source_route = 0
@@ -89,10 +89,10 @@ EOF
         sysctl -p >>/dev/null 2>&1
 	fi
 
-    grep "^#patch by opensaasnet/lnmp-utils$" /etc/security/limits.conf >/dev/null
+    grep "^#patch by tinyphporg/lnmp-utils$" /etc/security/limits.conf >/dev/null
     if [ $? != 0 ]; then
 		cat >>/etc/security/limits.conf<<EOF
-#patch by opensaasnet/lnmp-utils
+#patch by tinyphporg/lnmp-utils
 *               soft     nproc         65536
 *               hard     nproc         65536
 

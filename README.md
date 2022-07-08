@@ -7,8 +7,8 @@ lnmp-utils
 >  Linux(CentOS7X_64) + Openresty/Nginx + Mysql + PHP + Redis + FastDFS一键安装包.   
 >  经过实践检验，源码编译安装LNMP大型集群环境。   
 
-> 项目主要应用于: [TinyPHP for Frameworks](https://github.com/opensaasnet/tinyphp.git) 的运行环境。   
->  地址: [https://github.com/opensaasnet/tinyphp.git](https://github.com/opensaasnet/tinyphp.git)    
+> 项目主要应用于: [TinyPHP for Frameworks](https://github.com/tinyphporg/tinyphp.git) 的运行环境。   
+>  地址: [https://github.com/tinyphporg/tinyphp.git](https://github.com/tinyphporg/tinyphp.git)    
 
 安装
 ===
@@ -23,7 +23,7 @@ lnmp-utils
 lnmp一键安装  
 ---- 
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh
 ```
@@ -31,7 +31,7 @@ lnmp一键安装
 组件
 =======
 
-> 组件源: https://github.com/opensaasnet/lnmp-utils-components
+> 组件源: https://github.com/tinyphporg/lnmp-utils-components
 
 + [openresty(nginx+lua) 1.19.3.2](https://github.com/openresty/openresty.git)     Nginx+lua   
 + [mysql 8.0.27](http://cdn.mysql.com/Downloads/MySQL-8.0/mysql-8.0.27.tar.gz)  关系型数据库   
@@ -51,14 +51,14 @@ lnmp一键安装
 ---
 
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c openresty mysql php redis memecached fastdfs lsyncd node
 ```
 
 > openresty/nginx 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c openresty -o fdfs proxy
    #-o fdfs 安装fastdfs模块 upload模块
@@ -66,20 +66,20 @@ lnmp一键安装
 ```
 > mysql 8 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c mysql
 ```
 > php 7.3/7.4/8.1 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c php
 ```
 
 > nginx/openresty 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c openresty
 ```
@@ -87,26 +87,26 @@ lnmp一键安装
 
 > redis 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c redis
 ```
 
 > memcached 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c memcached
 ```
 > node.js 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c node
 ```
 > lsync 文件实时同步 一键安装
 ```shell
-   git clone https://github.com/opensaasnet/lnmp-utils.git
+   git clone https://github.com/tinyphporg/lnmp-utils.git
    cd lnmp-utils
    ./install.sh -c lsyncd
 ```
